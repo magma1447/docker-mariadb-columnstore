@@ -1,0 +1,6 @@
+# Bind volumes
+volumes/
+
+# Environment files with passwords
+.env
+

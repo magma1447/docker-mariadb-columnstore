@@ -1,0 +1,27 @@
+#!/bin/bash
+# provision script - Sets up the cluster
+
+CMAPI_KEY="${CMAPI_KEY:-somekey123}"
+PFLAG='/etc/columnstore/container-provisioned'
+LOG_PREFIX='/var/log/mariadb/columnstore'
+
+echo "Provisioning ColumnStore cluster..."
+sleep 5
+
+if mcs cluster set api-key --key "$CMAPI_KEY" &>"${LOG_PREFIX}"/provision.log; then
+    echo "API key set successfully"
+else
+    echo "Failed to set API key"
+    exit 1
+fi
+
+if mcs cluster node add --node 127.0.0.1 &>>"${LOG_PREFIX}"/provision.log; then
+    echo "Node added to cluster successfully"
+else
+    echo "Failed to add node to cluster"
+    exit 1
+fi
+
+touch "${PFLAG}"
+echo "Cluster provisioned successfully"
+

@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     procps \
     locales \
+    pigz \
     && rm -rf /var/lib/apt/lists/*
 
 # Generate and set locale

@@ -32,10 +32,6 @@ Create a `.env` file to customize settings:
 MCS_ROOT_PASSWORD=your_secure_password
 ```
 
-### Volumes
-
-- `./volumes/db:/var/lib/mysql` - Database data persistence (optional, can be removed from docker-compose.yml for ephemeral storage)
-
 ## Quick Start
 
 ```bash

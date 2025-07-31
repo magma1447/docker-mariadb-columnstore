@@ -2,7 +2,12 @@
 # Based on MariaDB 11.8 with ColumnStore 23.10.3 plugin
 FROM mariadb:11.8
 
-RUN apt-get update
+#RUN apt-get update
+RUN apt-get update --allow-insecure-repositories || true && \
+    apt-get install -y --allow-unauthenticated ca-certificates gnupg && \
+    gpg --keyserver keyserver.ubuntu.com --recv-keys 871920D1991BC93C F1656F24C74CD1D8 && \
+    gpg --export 871920D1991BC93C > /etc/apt/trusted.gpg.d/ubuntu.gpg && \
+    gpg --export F1656F24C74CD1D8 > /etc/apt/trusted.gpg.d/mariadb.gpg
 
 # Install required packages for ColumnStore
 RUN \

@@ -96,7 +96,8 @@ RUN chown -R mysql:mysql /var/lib/mysql /var/lib/columnstore /var/log/mariadb &&
 
 # Cleanup
 RUN \
-    apt-get clean
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create persistent volumes
 VOLUME ["/etc/columnstore", "/etc/mysql/mariadb.conf.d", "/var/lib/mysql", "/var/lib/columnstore"]

@@ -2,8 +2,11 @@
 # Based on MariaDB 11.8 with ColumnStore 23.10.3 plugin
 FROM mariadb:11.8
 
+RUN apt-get update
+
 # Install required packages for ColumnStore
-RUN apt-get update && apt-get install -y \
+RUN \
+    apt-get install -y \
     tini \
     rsyslog \
     rsync \
@@ -15,9 +18,7 @@ RUN apt-get update && apt-get install -y \
     htop \
     net-tools \
     procps \
-    locales \
-    pigz \
-    && rm -rf /var/lib/apt/lists/*
+    locales
 
 # Generate and set locale
 RUN locale-gen en_US.UTF-8
@@ -27,10 +28,11 @@ RUN echo '#!/bin/bash\necho "Fake systemctl: $*"\nexit 0' > /bin/systemctl && \
     chmod +x /bin/systemctl
 
 # Install ColumnStore plugin and CMAPI
-RUN apt-get update && \
-    apt-get install -y mariadb-plugin-columnstore mariadb-columnstore-cmapi && \
-    rm /bin/systemctl && \
-    rm -rf /var/lib/apt/lists/*
+RUN \
+    apt-get install -y \
+     mariadb-plugin-columnstore \
+     mariadb-columnstore-cmapi && \
+    rm /bin/systemctl
 
 # Copy startup scripts from official repository (adapted)
 COPY scripts/docker-entrypoint.sh /usr/bin/
@@ -43,7 +45,8 @@ COPY scripts/mcs-health /usr/bin/
 COPY scripts/provision /usr/bin/
 
 # Make scripts executable
-RUN chmod +x /usr/bin/docker-entrypoint.sh \
+RUN \
+    chmod +x /usr/bin/docker-entrypoint.sh \
     /usr/bin/start-services \
     /usr/bin/mcs-start \
     /usr/bin/columnstore-init \
@@ -90,6 +93,9 @@ RUN mariadb-install-db --user=mysql --datadir=/var/lib/mysql --skip-plugin-colum
 RUN chown -R mysql:mysql /var/lib/mysql /var/lib/columnstore /var/log/mariadb && \
     find /var/lib/columnstore -type d -exec chmod 755 {} \; && \
     find /var/lib/columnstore -type f -exec chmod 644 {} \;
+
+# Cleanup
+RUN rm -rf /var/lib/apt/lists/*
 
 # Create persistent volumes
 VOLUME ["/etc/columnstore", "/etc/mysql/mariadb.conf.d", "/var/lib/mysql", "/var/lib/columnstore"]

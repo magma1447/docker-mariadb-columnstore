@@ -1,6 +1,7 @@
 # Modern MariaDB ColumnStore Docker Image
 # Based on MariaDB 11.8 with ColumnStore 23.10.3 plugin
 
+# TAG: OLD CPU HACK
 # Extract working Python environment from ColumnStore 23.02.3
 # This is a workaround for older CPUs not handling newer instruction sets.
 FROM mariadb/columnstore:23.02.3 as columnstore_23_02_3
@@ -13,7 +14,7 @@ FROM mariadb:11.8
 
 RUN apt-get update
 
-# Install required packages for ColumnStore
+# Install required packages for ColumnStore.
 RUN \
     apt-get install -y \
     tini \
@@ -29,25 +30,36 @@ RUN \
     procps \
     locales
 
-# Generate and set locale
+# Generate and set locale.
 RUN locale-gen en_US.UTF-8
 
-# Create a fake systemctl to handle package installation
+# Create a fake systemctl to handle package installation.
 RUN echo '#!/bin/bash\necho "Fake systemctl: $*"\nexit 0' > /bin/systemctl && \
     chmod +x /bin/systemctl
 
-# Install ColumnStore plugin and CMAPI
+# Install ColumnStore plugin and CMAPI.
 RUN \
     apt-get install -y \
      mariadb-plugin-columnstore \
      mariadb-columnstore-cmapi && \
     rm /bin/systemctl
 
+# TAG: OLD CPU HACK
 # Apply the older Python version, which will work with older CPUs.
 COPY --from=columnstore_23_02_3 /tmp/python_env.tar.gz /tmp/
 RUN cd / && tar -xzf /tmp/python_env.tar.gz
 
-# Copy startup scripts from official repository (adapted)
+# TAG: OLD CPU HACK
+# Use python psutils module from the system.
+# The included one doesn't fit the base image's OS.
+RUN \
+    apt-get install -y python3-psutil && \
+    rm -rf /usr/share/columnstore/cmapi/deps/psutil && \
+    ln -s /usr/lib/python3/dist-packages/psutil \
+    /usr/share/columnstore/cmapi/python/lib/python3.7/site-packages/psutil
+
+
+# Copy startup scripts from official repository (adapted).
 COPY scripts/docker-entrypoint.sh /usr/bin/
 COPY scripts/start-services /usr/bin/
 COPY scripts/mcs-start /usr/bin/
@@ -57,7 +69,7 @@ COPY scripts/mcs-restart /usr/bin/
 COPY scripts/mcs-health /usr/bin/
 COPY scripts/provision /usr/bin/
 
-# Make scripts executable
+# Make scripts executable.
 RUN \
     chmod +x /usr/bin/docker-entrypoint.sh \
     /usr/bin/start-services \
@@ -68,14 +80,14 @@ RUN \
     /usr/bin/mcs-health \
     /usr/bin/provision
 
-# Create required directories and set permissions
+# Create required directories and set permissions.
 RUN mkdir -p /var/log/mariadb/columnstore \
     /var/lib/columnstore/data1 \
     /var/lib/columnstore/storagemanager \
     /mnt/skysql/columnstore-container-configuration \
     /mnt/skysql/columnstore-container-scripts
 
-# Customize CMAPI configuration for container deployment
+# Customize CMAPI configuration for container deployment.
 RUN printf "%s\n" \
     "" \
     "[Dispatcher]" \
@@ -85,15 +97,15 @@ RUN printf "%s\n" \
     "[application]" \
     "auto_failover = False" >> /etc/columnstore/cmapi_server.conf
 
-# Configure rsyslog for container environment
+# Configure rsyslog for container environment.
 RUN sed -i 's|SysSock.Use="off"|SysSock.Use="on"|' /etc/rsyslog.conf && \
     sed -i 's|^.*module(load="imjournal"|#module(load="imjournal"|g' /etc/rsyslog.conf && \
     sed -i 's|^.*StateFile="imjournal.state")|#  StateFile="imjournal.state")|g' /etc/rsyslog.conf
 
-# Add ColumnStore configuration include directory
+# Add ColumnStore configuration include directory.
 RUN echo '!includedir /mnt/skysql/columnstore-container-configuration' >> /etc/mysql/my.cnf
 
-# Initialize MariaDB database first (skip ColumnStore plugin during init), then backup configurations
+# Initialize MariaDB database first (skip ColumnStore plugin during init), then backup configurations.
 RUN mariadb-install-db --user=mysql --datadir=/var/lib/mysql --skip-plugin-columnstore && \
     service mariadb start && \
     mysql_tzinfo_to_sql /usr/share/zoneinfo | mariadb mysql && \
@@ -102,7 +114,7 @@ RUN mariadb-install-db --user=mysql --datadir=/var/lib/mysql --skip-plugin-colum
     rsync -Rravz --quiet /var/lib/mysql/ /var/lib/columnstore /etc/columnstore /etc/mysql/mariadb.conf.d /opt/ && \
     rm -f /opt/var/lib/mysql/mysql.sock
 
-# Set proper permissions
+# Set proper permissions.
 RUN chown -R mysql:mysql /var/lib/mysql /var/lib/columnstore /var/log/mariadb && \
     find /var/lib/columnstore -type d -exec chmod 755 {} \; && \
     find /var/lib/columnstore -type f -exec chmod 644 {} \;
@@ -112,21 +124,21 @@ RUN \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Create persistent volumes
+# Create persistent volumes.
 VOLUME ["/etc/columnstore", "/etc/mysql/mariadb.conf.d", "/var/lib/mysql", "/var/lib/columnstore"]
 
-# Set environment variables
+# Set environment variables.
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV PATH="/mnt/skysql/columnstore-container-scripts:${PATH}"
 
-# Use tini for proper signal handling
+# Use tini for proper signal handling.
 ENTRYPOINT ["/usr/bin/tini", "--", "docker-entrypoint.sh"]
 
-# Start services
+# Start services.
 CMD ["start-services"]
 
-# Expose MariaDB port
+# Expose MariaDB port.
 EXPOSE 3306
 

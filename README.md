@@ -27,11 +27,9 @@ This image includes a workaround for older CPU compatibility issues with ColumnS
 
 ### The Problem
 
-Starting with ColumnStore 23.02.4, MariaDB began shipping Python binaries compiled with newer CPU instruction sets that cause "Illegal instruction" errors on older processors. This affects:
+Starting with ColumnStore 23.02.4, MariaDB began shipping Python binaries compiled with newer CPU instruction sets that cause "Illegal instruction" errors on older processors. Newest known none working CPU:
 
-- **Older server hardware** (pre-2014 approximately)
-- **Development environments** with older CPUs
-- **Any system lacking the specific instruction sets** the newer Python binaries require
+- Intel(R) Xeon(R) CPU E5-2620 v2 @ 2.10GHz (from 2013)
 
 ### Our Solution
 
@@ -43,15 +41,11 @@ This image uses a hybrid approach:
 | ColumnStore | 23.10.3 | MariaDB plugin packages | Latest community version |
 | Python Environment | 3.7.7 | Extracted from ColumnStore 23.02.3 | CPU compatibility |
 
-The Python environment (including all CMAPI dependencies) is extracted from the last known working ColumnStore version (23.02.3) and embedded into the modern container. This provides:
+The Python environment (including all CMAPI dependencies) is extracted from the last known working ColumnStore version (23.02.3) and embedded into the modern container. However module `psutils` was not compatible with the base image's operating system. Therefore we delete that module, and replace it with the one from the apt repositories.
 
-- ✅ **Broad CPU compatibility** - Works on hardware from 2013+
-- ✅ **Modern ColumnStore features** - Latest plugin version  
-- ✅ **Stable dependencies** - Pre-tested Python module versions
+### Remove workaround
 
-### Affected Systems
-
-If you encounter "Illegal instruction" errors when starting ColumnStore, your CPU likely lacks instruction sets required by the newer Python binaries. This workaround should resolve the issue without requiring hardware upgrades.
+You can remove the workaround by removing the sections marked as `TAG: OLD CPU HACK` in the `Dockerfile`.
 
 ## Configuration
 

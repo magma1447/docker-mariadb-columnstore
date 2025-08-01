@@ -1,6 +1,16 @@
 # Modern MariaDB ColumnStore Docker Image
 # Based on MariaDB 11.8 with ColumnStore 23.10.3 plugin
+
+# Extract working Python environment from ColumnStore 23.02.3
+# This is a workaround for older CPUs not handling newer instruction sets.
+FROM mariadb/columnstore:23.02.3 as columnstore_23_02_3
+RUN tar -czf /tmp/python_env.tar.gz /usr/share/columnstore/cmapi/python
+
 FROM mariadb:11.8
+
+# Apply the older Python version, which will work with older CPUs.
+COPY --from=columnstore_23_02_3 /tmp/python_env.tar.gz /tmp/
+RUN cd / && tar -xzf /tmp/python_env.tar.gz
 
 RUN apt-get update
 

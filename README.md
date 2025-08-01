@@ -21,6 +21,38 @@ The [official MariaDB ColumnStore Docker images](https://hub.docker.com/r/mariad
 | Base OS | Rocky Linux 8 | Debian (MariaDB official base) |
 | Maintenance | Stagnant | Current |
 
+## CPU Compatibility
+
+This image includes a workaround for older CPU compatibility issues with ColumnStore's Python environment.
+
+### The Problem
+
+Starting with ColumnStore 23.02.4, MariaDB began shipping Python binaries compiled with newer CPU instruction sets that cause "Illegal instruction" errors on older processors. This affects:
+
+- **Older server hardware** (pre-2014 approximately)
+- **Development environments** with older CPUs
+- **Any system lacking the specific instruction sets** the newer Python binaries require
+
+### Our Solution
+
+This image uses a hybrid approach:
+
+| Component | Version | Source | Reason |
+|-----------|---------|--------|---------|
+| MariaDB | 11.8.2 | Official MariaDB 11.8 image | Latest stable features |
+| ColumnStore | 23.10.3 | MariaDB plugin packages | Latest community version |
+| Python Environment | 3.7.7 | Extracted from ColumnStore 23.02.3 | CPU compatibility |
+
+The Python environment (including all CMAPI dependencies) is extracted from the last known working ColumnStore version (23.02.3) and embedded into the modern container. This provides:
+
+- ✅ **Broad CPU compatibility** - Works on hardware from 2013+
+- ✅ **Modern ColumnStore features** - Latest plugin version  
+- ✅ **Stable dependencies** - Pre-tested Python module versions
+
+### Affected Systems
+
+If you encounter "Illegal instruction" errors when starting ColumnStore, your CPU likely lacks instruction sets required by the newer Python binaries. This workaround should resolve the issue without requiring hardware upgrades.
+
 ## Configuration
 
 ### Environment Variables

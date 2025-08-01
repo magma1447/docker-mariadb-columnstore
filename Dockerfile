@@ -4,13 +4,12 @@
 # Extract working Python environment from ColumnStore 23.02.3
 # This is a workaround for older CPUs not handling newer instruction sets.
 FROM mariadb/columnstore:23.02.3 as columnstore_23_02_3
-RUN tar -czf /tmp/python_env.tar.gz /usr/share/columnstore/cmapi/python
+RUN tar -czf /tmp/python_and_deps.tar.gz \
+    /usr/share/columnstore/cmapi/python \
+    /usr/share/columnstore/cmapi/deps
+
 
 FROM mariadb:11.8
-
-# Apply the older Python version, which will work with older CPUs.
-COPY --from=columnstore_23_02_3 /tmp/python_env.tar.gz /tmp/
-RUN cd / && tar -xzf /tmp/python_env.tar.gz
 
 RUN apt-get update
 
@@ -43,6 +42,10 @@ RUN \
      mariadb-plugin-columnstore \
      mariadb-columnstore-cmapi && \
     rm /bin/systemctl
+
+# Apply the older Python version, which will work with older CPUs.
+COPY --from=columnstore_23_02_3 /tmp/python_env.tar.gz /tmp/
+RUN cd / && tar -xzf /tmp/python_env.tar.gz
 
 # Copy startup scripts from official repository (adapted)
 COPY scripts/docker-entrypoint.sh /usr/bin/

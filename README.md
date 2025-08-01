@@ -21,9 +21,14 @@ The [official MariaDB ColumnStore Docker images](https://hub.docker.com/r/mariad
 | Base OS | Rocky Linux 8 | Debian (MariaDB official base) |
 | Maintenance | Stagnant | Current |
 
+## Tags
+
+- latest - Based on `Dockerfile` in `main` branch.
+- legacy-cpu - See [CPU Compatibility](#cpu-compatibility)
+
 ## CPU Compatibility
 
-This image includes a workaround for older CPU compatibility issues with ColumnStore's Python environment.
+The tag `legacy-cpu` includes a workaround for older CPU compatibility issues with ColumnStore's Python environment.
 
 ### The Problem
 
@@ -42,10 +47,6 @@ This image uses a hybrid approach:
 | Python Environment | 3.7.7 | Extracted from ColumnStore 23.02.3 | CPU compatibility |
 
 The Python environment (including all CMAPI dependencies) is extracted from the last known working ColumnStore version (23.02.3) and embedded into the modern container. However module `psutils` was not compatible with the base image's operating system. Therefore we delete that module, and replace it with the one from the apt repositories.
-
-### Remove workaround
-
-You can remove the workaround by removing the sections marked as `TAG: OLD CPU HACK` in the `Dockerfile`.
 
 ## Configuration
 

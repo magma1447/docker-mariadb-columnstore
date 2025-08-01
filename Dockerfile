@@ -4,7 +4,7 @@
 # Extract working Python environment from ColumnStore 23.02.3
 # This is a workaround for older CPUs not handling newer instruction sets.
 FROM mariadb/columnstore:23.02.3 as columnstore_23_02_3
-RUN tar -czf /tmp/python_and_deps.tar.gz \
+RUN tar -czf /tmp/python_env.tar.gz \
     /usr/share/columnstore/cmapi/python \
     /usr/share/columnstore/cmapi/deps
 

@@ -16,14 +16,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      
-    strategy:
-      matrix:
-        include:
-          - dockerfile: Dockerfile
-            tag: latest
-          - dockerfile: Dockerfile.legacy-cpu
-            tag: legacy-cpu
 
     steps:
     - name: Checkout repository
@@ -43,13 +35,12 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=raw,value=${{ matrix.tag }}
+          type=raw,value=latest
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ${{ matrix.dockerfile }}
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}

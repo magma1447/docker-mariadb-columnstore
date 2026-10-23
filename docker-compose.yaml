@@ -6,16 +6,16 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    stop_grace_period: 2m
     shm_size: '512MB'
     ulimits:
       core: 0
+      nofile: 65536
     environment:
       - TZ=UTC
-      - PM1=${MCS:-mcs}
       - MARIADB_ROOT_PASSWORD=${MCS_ROOT_PASSWORD:-C0lumnStore!}
       - MARIADB_AUTO_UPGRADE=1
     volumes:
-      - mcs_mysql_config:/etc/mysql
       - mcs_mysql_data:/var/lib/mysql
       - mcs_columnstore_config:/etc/columnstore
       - mcs_columnstore_data:/var/lib/columnstore
@@ -23,8 +23,6 @@ services:
       - 3306:3306
 
 volumes:
-  mcs_mysql_config:
   mcs_mysql_data:
   mcs_columnstore_config:
   mcs_columnstore_data:
-

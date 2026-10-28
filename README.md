@@ -90,7 +90,11 @@ On stop, it stops MariaDB first, then the daemons in the reverse order, and save
 
 ### Logging
 
-The ColumnStore daemons log through syslog only. rsyslog in the container forwards their messages from `info` up to `docker logs`. Debug messages are left out, as ColumnStore logs the start and end of every SQL statement at that level; to include them, change `*.info` to `*.debug` in `rsyslog.conf`.
+The ColumnStore daemons log through syslog only. rsyslog in the container forwards their messages from `info` up to `docker logs`. Debug messages are left out, as ColumnStore logs the start and end of every SQL statement at that level. `rsyslog.conf` includes `/etc/rsyslog.d/*.conf`, so an image built on this one can add them with a file of its own:
+
+```
+*.=debug action(type="omfile" file="/proc/1/fd/1" template="docker")
+```
 
 `cpimport` also writes a log file per job in `/var/log/mariadb/columnstore/cpimport/`.
 

@@ -1,0 +1,61 @@
+--- a/dbcon/joblist/distributedenginecomm.cpp
++++ b/dbcon/joblist/distributedenginecomm.cpp
+@@ -35,6 +35,7 @@
+ #include <cassert>
+ #include <ctime>
+ #include <algorithm>
++#include <limits>
+ #include <unistd.h>
+ #include <chrono>
+ #include <thread>
+@@ -98,6 +99,23 @@
+   }
+ }
+ 
++// An ACK carries its msg count in a 16-bit field (ISMPacketHeader::Size), and
++// nextPMToACK() truncates a larger count to it. A batch of exactly 65536 msgs
++// then counts as 0, and the loops in sendAcks() that subtract it never finish.
++// Handing nextPMToACK() at most 65535 msgs per call splits a larger batch into
++// several ACKs; PrimProc adds their counts up (BPPSendThread::sendMore()).
++uint32_t ackChunk(uint32_t msgCount)
++{
++  const uint32_t maxAckCount = std::numeric_limits<uint16_t>::max();
++
++  if (msgCount <= maxAckCount)
++    return msgCount;
++
++  cerr << "DEC::sendAcks(): splitting " << msgCount << " msgs into parts of at most " << maxAckCount
++       << endl;
++  return maxAckCount;
++}
++
+ // @bug 1463. this function is added for PM failover. for dual/more nic PM,
+ // this function is used to get the module name
+ string getModuleNameByIPAddr(oam::ModuleTypeConfig moduletypeconfig, string ipAddress)
+@@ -669,7 +687,7 @@
+ 
+     while (l_msgCount > 0)
+     {
+-      nextPMToACK(mqe, l_msgCount, &sockidx, &numack);
++      nextPMToACK(mqe, ackChunk(l_msgCount), &sockidx, &numack);
+       idbassert(numack <= l_msgCount);
+       l_msgCount -= numack;
+     }
+@@ -700,7 +718,7 @@
+ 
+     while (msgsToIgnore > 0)
+     {
+-      nextPMToACK(mqe, msgsToIgnore, &sockidx, &numack);
++      nextPMToACK(mqe, ackChunk(msgsToIgnore), &sockidx, &numack);
+       idbassert(numack <= msgsToIgnore);
+       msgsToIgnore -= numack;
+     }
+@@ -731,7 +749,7 @@
+ 
+         /* This will reset the ACK field in the Bytestream directly, and nothing
+          * else needs to change if multiple msgs are sent. */
+-        nextPMToACK(mqe, l_msgCount, &sockIndex, toAck);
++        nextPMToACK(mqe, ackChunk(l_msgCount), &sockIndex, toAck);
+         idbassert(*toAck <= l_msgCount);
+         l_msgCount -= *toAck;
+         pmAcked[sockIndex] = true;

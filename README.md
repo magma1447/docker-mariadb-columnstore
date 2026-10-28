@@ -1,13 +1,13 @@
 # MariaDB ColumnStore Docker
 
-A single-node MariaDB ColumnStore image, built from the official [MariaDB Docker image](https://hub.docker.com/_/mariadb) and the ColumnStore storage engine plugin from MariaDB's own package repository.
+A single-node MariaDB ColumnStore image, built from the official [MariaDB Docker image](https://hub.docker.com/_/mariadb) and the ColumnStore storage engine plugin, built from MariaDB's source with fixes (see [Patches](#patches)).
 
 The [official MariaDB ColumnStore images](https://hub.docker.com/r/mariadb/columnstore) have not been updated since 2023 (23.02.x). ColumnStore itself has moved on and is now shipped as a plugin package for the regular MariaDB server, so this image adds it to the regular server image instead.
 
 ## What This Provides
 
-- **MariaDB 13.0** from the official `mariadb:13.0` image.
-- **ColumnStore** from the `mariadb-plugin-columnstore` package matching that server (25.10.7 at the time of writing).
+- **MariaDB 13.0.2** from the official `mariadb:13.0.2` image.
+- **ColumnStore 25.10.7**, the version MariaDB 13.0.2 ships, built from source with the fixes in `patches/` (see [Patches](#patches)).
 - **Single node**, without CMAPI (ColumnStore's cluster management API), which is not in MariaDB's community repository.
 - **The official image's entrypoint**, so its `MARIADB_*` environment variables and `/docker-entrypoint-initdb.d/` work as usual.
 - **ColumnStore's logs in `docker logs`.**
@@ -15,6 +15,19 @@ The [official MariaDB ColumnStore images](https://hub.docker.com/r/mariadb/colum
 ## Tags
 
 - `latest` - Built from `Dockerfile` on the `main` branch.
+- `ack-overflow` - Built from the `fix/ack-overflow` branch, with ColumnStore patched.
+
+## Patches
+
+On the `fix/ack-overflow` branch, the image doesn't install MariaDB's `mariadb-plugin-columnstore` package. A build stage builds MariaDB's packages from the source tag of the base image's release, the way MariaDB builds its own (`debian/autobake-deb.sh`), with the patches in `patches/` applied to ColumnStore. The final image installs the ColumnStore package from that build.
+
+- `ack-overflow.patch` - The query engine hangs in an endless loop, logging `DEC::nextPMToACK(): Couldn't find a PM to ACK! 0  max: 65536` without end, when it acknowledges a batch of exactly 65536 messages: the count travels in a 16-bit field and becomes 0. The patch acknowledges at most 65535 messages at a time, and logs `DEC::sendAcks(): splitting ...` when it splits a batch. Upstream's fix for this (MCOL-5602) was reverted in 2024 and not redone.
+
+The build takes a while and needs a few tens of GB for Docker's build cache:
+
+```bash
+docker build -t ghcr.io/magma1447/docker-mariadb-columnstore:ack-overflow .
+```
 
 ## Quick Start
 
